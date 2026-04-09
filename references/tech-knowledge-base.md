@@ -58,6 +58,8 @@
 
 ### 1.2 CSS 布局
 
+- **CSS 中如何实现打字机效果的动画？** — 打字机效果可以通过控制容器宽度或利用 `steps()` 时间函数配合光标闪烁来实现。纯 CSS 方案：使用 `white-space: nowrap` 和 `overflow: hidden` 隐藏溢出内容；通过 `animation` 改变 `width` 从 0 到 100%；使用 `steps()` 函数让动画呈现断续的打字感，而不是平滑过渡；利用右边框 `border-right` 模拟闪烁的光标。常见坑：字符宽度不一致导致动画偏移（建议使用等宽字体 monospace）；无法动态适配多行文本。追问：如果是 AI 实时生成的流式文本，用 CSS 动画实现还是 JS 实现更好？——JS 更合适，因为文本长度不可预知且逐 Token 到达，CSS 动画需要预知最终宽度
+
 - **Flexbox 和 Grid 的区别？各适合什么场景？** — Flexbox 是一维布局（行或列），适合组件内部布局（导航栏、按钮组、卡片内容排列）。Grid 是二维布局（行和列同时控制），适合页面整体布局（仪表盘、复杂表格式布局）。实际项目中两者经常嵌套使用
 - **BFC 是什么？怎么触发？有什么用？** — Block Formatting Context（块级格式化上下文），是一个独立的渲染区域。触发条件：`overflow` 非 `visible`、`display: flow-root`、`float`、`position: absolute/fixed`、`display: flex/grid`。用途：清除浮动、阻止外边距折叠（margin collapse）、防止元素被浮动元素覆盖
 - **层叠上下文（Stacking Context）是什么？z-index 为什么有时不生效？** — 层叠上下文是一个三维概念，决定元素在 Z 轴的堆叠顺序。创建条件：`position` 非 `static` 且设置了 `z-index`、`opacity < 1`、`transform`、`filter`、`will-change` 等。z-index 只在同一层叠上下文内比较，跨上下文无效
@@ -104,6 +106,8 @@
 
 ### 2.4 ES6+ 特性
 
+- **如何判断一个对象是否是数组？至少列举三种方法？** — ① `Array.isArray(obj)`（最推荐，ES5+，跨 iframe 可靠）；② `Object.prototype.toString.call(obj) === '[object Array]'`（万能方法，跨 iframe 可靠）；③ `obj instanceof Array`（同一执行上下文下可用，跨 iframe 失效）；④ `obj.constructor === Array`（可被篡改，不推荐）；⑤ `Array.prototype.isPrototypeOf(obj)`（原型链检查）。面试重点：理解 `instanceof` 跨 iframe 失效的原因（不同全局执行上下文中 `Array` 构造函数不同），以及为什么 `Array.isArray` 是首选方案
+- **手写防抖函数（Debounce）并解释应用场景？** — 防抖是指事件触发后延迟执行，如果在延迟时间内再次触发则重新计时。核心原理：利用闭包存储 timer 变量，每次触发先 `clearTimeout` 再 `setTimeout`。实现：`function debounce(fn, delay) { let timer = null; return function(...args) { if (timer) clearTimeout(timer); timer = setTimeout(() => { fn.apply(this, args); }, delay); }; }`。应用场景：AI 搜索建议（防止每输入一个字符就调用 LLM 接口）、窗口 resize、表单校验。进阶：支持 `immediate`（首次立即执行）、`cancel` 方法、返回 Promise。与节流（Throttle）的区别：节流是固定间隔内最多执行一次（如滚动事件），防抖是停止触发后才执行
 - **解构赋值有哪些高级用法？** — 嵌套解构、默认值、重命名（`{ name: userName }`）、剩余参数（`...rest`）、动态键（`{ [key]: value }`）。函数参数解构配合默认值非常常用。注意：解构 `null`/`undefined` 会报错
 - **Proxy 和 Reflect 是什么？有什么应用？** — Proxy 创建对象的代理，拦截属性读取、赋值、删除等操作。Reflect 提供与 Proxy handler 一一对应的静态方法。应用：响应式数据（Vue 3 的核心）、数据验证、日志记录、实现观察者模式、不可变数据。13 种可拦截操作（trap）：get、set、has、deleteProperty、apply 等
 - **Symbol 的作用？** — 创建唯一的属性键，避免命名冲突。应用：定义对象私有属性（非真正私有，但不易被遍历到）；内置 Symbol 修改对象行为（`Symbol.iterator`、`Symbol.toPrimitive`、`Symbol.hasInstance`）；作为常量枚举值
@@ -146,6 +150,7 @@
 - **useState 的原理？为什么不能在条件语句中使用 Hook？** — React 通过 Fiber 节点上的链表按顺序存储每个 Hook 的状态。每次渲染时按调用顺序匹配链表节点，如果条件语句导致 Hook 调用顺序改变，状态就会错位。这是 Hooks 规则（Rules of Hooks）的根本原因
 - **useEffect 的依赖数组怎么正确使用？常见的坑？** — 依赖数组决定 effect 何时重新执行。空数组 `[]` 只在挂载时执行一次（类似 componentDidMount）；不传则每次渲染都执行。常见坑：对象/数组引用变化导致无限循环（需 useMemo/useCallback 或拆解为基本类型）；闭包陷阱（effect 中捕获的是旧状态）；cleanup 函数不要遗忘（清除订阅、定时器）
 - **React 的渲染机制：Virtual DOM → Reconciliation → Commit？** — ① Virtual DOM：用 JS 对象描述 UI 树；② Reconciliation（协调）：Diff 算法比较新旧 VDOM，找出最小变更（同层比较、key 优化列表 diff）；③ Commit：将变更应用到真实 DOM。Fiber 架构将渲染拆分为可中断的工作单元，支持时间切片（Time Slicing）和优先级调度
+- **React Fiber 架构解决了什么问题？工作原理？** — Fiber 主要解决 React 在大量 DOM 更新时导致浏览器卡顿的问题，将同步更新变为可中断的异步更新。核心思想是"时间分片"（Time Slicing），将渲染工作拆分为多个小任务。工作原理：① 引入双缓存技术，在内存中构建新的 Fiber 树（workInProgress tree），完成后一次性替换当前树（current tree）；② 任务具有优先级（Priority），高优先级任务（如用户输入）可以打断低优先级任务（如数据请求后的渲染）；③ 分为 Reconciliation（协调阶段，可中断）和 Commit（提交阶段，不可中断）两个阶段。常见坑：误以为 Fiber 提升了单次计算的速度（实际上是提升了响应性）；在协调阶段执行了具有副作用的操作。追问：为什么 React 决定在 Commit 阶段不能中断？——因为 Commit 阶段操作真实 DOM，中断会导致 UI 不一致
 - **React.memo、useMemo、useCallback 各有什么用？什么时候该用？** — `React.memo`：对组件进行浅比较，props 不变则跳过重渲染。`useMemo`：缓存计算结果，避免昂贵计算重复执行。`useCallback`：缓存函数引用，配合 memo 子组件避免不必要重渲染。注意：不要过早优化，只在性能分析确认有瓶颈时使用；React Compiler（React 19+）会自动处理部分场景
 - **React 状态管理方案怎么选？** — Context：简单跨层级传递，不适合高频更新（会导致消费者全部重渲染）。Redux Toolkit：复杂全局状态，中间件生态丰富，适合大型应用。Zustand：轻量，API 简洁，基于发布订阅，支持选择性重渲染。Jotai/Recoil：原子化状态，适合细粒度响应式更新。选型看复杂度：简单用 Context + useReducer，中等用 Zustand，复杂用 Redux Toolkit
 - **Next.js 的 App Router 和 Pages Router 有什么区别？RSC 是什么？** — App Router（Next.js 13+）：基于 React Server Components，默认服务端渲染，支持流式渲染、并行路由、嵌套布局。Pages Router：传统 CSR + SSR/SSG 模式。RSC（React Server Components）：组件在服务端执行，不发送 JS 到客户端，减少 bundle 体积。`'use client'` 标记客户端组件边界
@@ -178,6 +183,7 @@
 - **懒加载有哪些实现方式？** — 路由懒加载：`React.lazy` + `Suspense`（React）、动态 `import()` + `defineAsyncComponent`（Vue）。组件懒加载：同上，配合 loading/error 状态。图片懒加载：`<img loading="lazy">`（原生）、Intersection Observer API（自定义）。第三方库按需引入：`import { Button } from 'antd'`（配合 Tree Shaking）
 - **代码分割（Code Splitting）怎么做？** — 路由级分割：每个路由一个 chunk，最常用。组件级分割：大型组件动态导入。第三方库分割：`splitChunks`（Webpack）或 `manualChunks`（Vite/Rollup）将 vendor 单独打包。分割原则：首屏只加载必要代码；共享代码提取为公共 chunk；避免过度分割导致请求过多
 - **前端缓存策略有哪些？** — 强缓存（`Cache-Control: max-age`）：不发请求，直接用本地缓存。协商缓存（`ETag`/`Last-Modified`）：发请求验证是否变更。Service Worker 缓存：离线可用，策略灵活（Cache First、Network First、Stale While Revalidate）。实践：HTML 使用协商缓存（随时更新）；JS/CSS/图片使用强缓存 + 文件名 hash（内容变更则 hash 变）
+- **如何配置 Webpack 或 Vite 来优化首屏加载速度？** — Webpack 方面：① `splitChunks` 配置（将 vendor、公共模块、业务代码分离，`chunks: 'all'`）；② `MiniCssExtractPlugin` 提取 CSS 减少 JS 体积；③ `TerserPlugin` 压缩 + Tree Shaking；④ `externals` 将大型库（React、Lodash）排除为 CDN 引用；⑤ 持久化缓存（`cache: { type: 'filesystem' }`）加速二次构建。Vite 方面：① `build.rollupOptions.output.manualChunks` 手动分包；② `build.cssCodeSplit: true` CSS 按路由分割；③ 依赖预构建（`optimizeDeps`）减少开发时请求数。通用策略：路由级 Code Splitting（`React.lazy` / 动态 `import()`）；关键 CSS 内联（Critical CSS）；资源预加载（`<link rel="preload">`）；图片压缩 + WebP/AVIF 格式 + 懒加载；开启 Gzip/Brotli 压缩
 
 ### 5.3 测试
 
